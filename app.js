@@ -23,7 +23,8 @@ app.use(express.urlencoded({extended:true}))
 app.use('/vendor',vendorRoute)
 app.use('/firm',firmRoutes)
 app.use('/product',productRoutes)
+app.use('/',(req,res)=>res.send("'this is home route"))
 
 //server
-const PORT =4000
+const PORT =process.env.PORT||4000
 app.listen(PORT,()=>{console.log(`server started succusful ${PORT}`)})
