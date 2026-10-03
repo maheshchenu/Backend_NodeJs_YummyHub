@@ -2,18 +2,28 @@ const Product = require("../models/Product")
 const Firm = require("../models/Firm")
 const multer = require("multer")
 const path = require("path")
+const fs = require("fs")
 
 
-// ===============================
-// MULTER STORAGE
-// ===============================
+// ======================================
+// CREATE UPLOADS FOLDER
+// ======================================
+
+const uploadPath = path.join(__dirname, "..", "uploads")
+
+if (!fs.existsSync(uploadPath)) {
+    fs.mkdirSync(uploadPath, { recursive: true })
+}
+
+
+// ======================================
+// MULTER
+// ======================================
 
 const storage = multer.diskStorage({
 
     destination: function (req, file, cb) {
-
-        cb(null, "uploads/")
-
+        cb(null, uploadPath)
     },
 
     filename: function (req, file, cb) {
@@ -22,7 +32,6 @@ const storage = multer.diskStorage({
             Date.now() + "-" + file.originalname
 
         cb(null, uniqueName)
-
     }
 
 })
@@ -32,17 +41,22 @@ const upload = multer({
 })
 
 
-// ===============================
+// ======================================
 // ADD PRODUCT
-// ===============================
+// ======================================
 
 const addProduct = async (req, res) => {
 
     try {
 
-        console.log("PRODUCT BODY:", req.body)
-        console.log("PRODUCT FILE:", req.file)
+        console.log("================================")
+        console.log("ADD PRODUCT")
+        console.log("================================")
+
+        console.log("BODY:", req.body)
+        console.log("FILE:", req.file)
         console.log("FIRM ID:", req.params.firmId)
+        console.log("VENDOR ID:", req.vendorId)
 
 
         const {
@@ -55,22 +69,89 @@ const addProduct = async (req, res) => {
         } = req.body
 
 
-        // Image
+        // ==================================
+        // VALIDATION
+        // ==================================
 
-        const image = req.file
-            ? req.file.filename
-            : undefined
+        if (!productName) {
+            return res.status(400).json({
+                error: "Product name is required"
+            })
+        }
+
+        if (!price) {
+            return res.status(400).json({
+                error: "Price is required"
+            })
+        }
+
+        if (!category) {
+            return res.status(400).json({
+                error: "Category is required"
+            })
+        }
+
+        if (!["veg", "non-veg"].includes(category)) {
+            return res.status(400).json({
+                error: "Category must be veg or non-veg"
+            })
+        }
+
+        if (!bestSeller) {
+            return res.status(400).json({
+                error: "Best Seller is required"
+            })
+        }
+
+        if (!description) {
+            return res.status(400).json({
+                error: "Description is required"
+            })
+        }
+
+        if (!offer) {
+            return res.status(400).json({
+                error: "Offer is required"
+            })
+        }
 
 
-        // Firm ID
+        // ==================================
+        // IMAGE
+        // ==================================
+
+        if (!req.file) {
+
+            return res.status(400).json({
+                error: "Product image is required"
+            })
+
+        }
+
+        const image = req.file.filename
+
+
+        // ==================================
+        // FIRM ID
+        // ==================================
 
         const firmId = req.params.firmId
 
+        if (!firmId) {
 
-        // Find firm
+            return res.status(400).json({
+                error: "Firm ID is required"
+            })
 
-        const firm = await Firm.findById(firmId)
+        }
 
+
+        // ==================================
+        // FIND FIRM
+        // ==================================
+
+        const firm =
+            await Firm.findById(firmId)
 
         if (!firm) {
 
@@ -80,75 +161,130 @@ const addProduct = async (req, res) => {
 
         }
 
-
-        // Create product
-
-        const product = new Product({
-
-            productName,
-
-            price,
-
-            category,
-
-            bestSeller,
-
-            description,
-
-            offer,
-
-            image,
-
-            firm: [
-                firm._id
-            ]
-
-        })
+        console.log(
+            "FIRM FOUND:",
+            firm._id
+        )
 
 
-        // Save product
+        // ==================================
+        // CREATE PRODUCT
+        // ==================================
+
+        const product =
+            new Product({
+
+                productName: productName,
+
+                price: price,
+
+                category: category,
+
+                bestSeller: bestSeller,
+
+                description: description,
+
+                offer: offer,
+
+                image: image,
+
+                firm: [
+                    firm._id
+                ]
+
+            })
+
+
+        console.log(
+            "PRODUCT BEFORE SAVE:",
+            product
+        )
+
+
+        // ==================================
+        // SAVE PRODUCT
+        // ==================================
 
         const savedProduct =
             await product.save()
 
+        console.log(
+            "PRODUCT SAVED:",
+            savedProduct._id
+        )
 
-        // Add product to firm
+
+        // ==================================
+        // ADD PRODUCT TO FIRM
+        // ==================================
+
+        if (!Array.isArray(firm.products)) {
+            firm.products = []
+        }
 
         firm.products.push(
             savedProduct._id
         )
 
-
         await firm.save()
 
 
         console.log(
-            "Product added successfully"
+            "PRODUCT ADDED TO FIRM"
         )
 
 
+        // ==================================
+        // RESPONSE
+        // ==================================
+
         return res.status(201).json({
 
-            message: "Product added successfully",
+            message:
+                "Product added successfully",
 
-            productId: savedProduct._id,
+            productId:
+                savedProduct._id,
 
-            product: savedProduct
+            product:
+                savedProduct
 
         })
 
+
     } catch (error) {
+
+        console.error(
+            "================================"
+        )
 
         console.error(
             "ADD PRODUCT ERROR:",
             error
         )
 
+        console.error(
+            "ERROR MESSAGE:",
+            error.message
+        )
+
+        console.error(
+            "ERROR NAME:",
+            error.name
+        )
+
+        console.error(
+            "================================"
+        )
+
+
         return res.status(500).json({
 
-            error: "Internal server error",
+            error:
+                "Internal server error",
 
-            message: error.message
+            message:
+                error.message
 
         })
 
@@ -157,9 +293,9 @@ const addProduct = async (req, res) => {
 }
 
 
-// ===============================
+// ======================================
 // GET PRODUCTS BY FIRM
-// ===============================
+// ======================================
 
 const getProductByFirm = async (req, res) => {
 
@@ -168,31 +304,24 @@ const getProductByFirm = async (req, res) => {
         const firmId =
             req.params.firmId
 
-
         const firm =
             await Firm.findById(firmId)
-
 
         if (!firm) {
 
             return res.status(404).json({
-
                 error: "No firm found"
-
             })
 
         }
 
-
         const restaurantName =
             firm.firmName
-
 
         const products =
             await Product.find({
                 firm: firmId
             })
-
 
         return res.status(200).json({
 
@@ -204,11 +333,18 @@ const getProductByFirm = async (req, res) => {
 
     } catch (error) {
 
-        console.error(error)
+        console.error(
+            "GET PRODUCTS ERROR:",
+            error
+        )
 
         return res.status(500).json({
 
-            error: "Internal server error"
+            error:
+                "Internal server error",
+
+            message:
+                error.message
 
         })
 
@@ -217,9 +353,9 @@ const getProductByFirm = async (req, res) => {
 }
 
 
-// ===============================
+// ======================================
 // DELETE PRODUCT
-// ===============================
+// ======================================
 
 const deleteProductById = async (req, res) => {
 
@@ -228,37 +364,43 @@ const deleteProductById = async (req, res) => {
         const productId =
             req.params.productId
 
-
         const deletedProduct =
             await Product.findByIdAndDelete(
                 productId
             )
 
-
         if (!deletedProduct) {
 
             return res.status(404).json({
 
-                error: "No Product Found"
+                error:
+                    "No Product Found"
 
             })
 
         }
 
-
         return res.status(200).json({
 
-            message: "Product deleted successfully"
+            message:
+                "Product deleted successfully"
 
         })
 
     } catch (error) {
 
-        console.error(error)
+        console.error(
+            "DELETE PRODUCT ERROR:",
+            error
+        )
 
         return res.status(500).json({
 
-            error: "Internal server error"
+            error:
+                "Internal server error",
+
+            message:
+                error.message
 
         })
 
@@ -267,9 +409,9 @@ const deleteProductById = async (req, res) => {
 }
 
 
-// ===============================
+// ======================================
 // EXPORT
-// ===============================
+// ======================================
 
 module.exports = {
 
