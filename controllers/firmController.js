@@ -2,53 +2,68 @@ const Firm = require('../models/Firm')
 const Vendor = require('../models/Vendor')
 const multer = require('multer')
 const path = require('path')
+const fs = require('fs')
 
 
-// ===============================
+// ======================================
+// UPLOADS FOLDER
+// ======================================
+
+const uploadPath = path.join(__dirname, '..', 'uploads')
+
+if (!fs.existsSync(uploadPath)) {
+  fs.mkdirSync(uploadPath, { recursive: true })
+}
+
+
+// ======================================
 // MULTER STORAGE
-// ===============================
+// ======================================
 
 const storage = multer.diskStorage({
 
   destination: function (req, file, cb) {
-
-    cb(null, 'uploads/')
-
+    cb(null, uploadPath)
   },
 
   filename: function (req, file, cb) {
 
-    const uniqueName =
-      Date.now() +
-      '-' +
-      file.originalname
+    const extension =
+      path.extname(file.originalname)
 
-    cb(null, uniqueName)
+    const filename =
+      Date.now() + extension
 
+    cb(null, filename)
   }
 
 })
-
 
 const upload = multer({
   storage: storage
 })
 
 
-// ===============================
+// ======================================
 // ADD FIRM
-// ===============================
+// ======================================
 
 const addFirm = async (req, res) => {
 
   try {
 
+    console.log('==============================')
+    console.log('ADD FIRM REQUEST')
+    console.log('==============================')
+
     console.log('BODY:', req.body)
-
     console.log('FILE:', req.file)
-
     console.log('VENDOR ID:', req.vendorId)
 
+
+    // ------------------------------
+    // Get form data
+    // ------------------------------
 
     const {
       firmName,
@@ -59,11 +74,13 @@ const addFirm = async (req, res) => {
     } = req.body
 
 
-    // Check vendor
+    // ------------------------------
+    // Find vendor
+    // ------------------------------
+
     const vendor = await Vendor.findById(
       req.vendorId
     )
-
 
     if (!vendor) {
 
@@ -74,26 +91,35 @@ const addFirm = async (req, res) => {
     }
 
 
+    // ------------------------------
     // Image
+    // ------------------------------
+
     const image = req.file
       ? req.file.filename
-      : undefined
+      : ''
 
 
-    // Create firm
+    console.log('IMAGE NAME:', image)
+
+
+    // ------------------------------
+    // Create Firm
+    // ------------------------------
+
     const firm = new Firm({
 
-      firmName,
+      firmName: firmName,
 
-      area,
+      area: area,
 
-      category,
+      category: category,
 
-      region,
+      region: region,
 
-      offer,
+      offer: offer,
 
-      image,
+      image: image,
 
       vendor: [
         vendor._id
@@ -102,15 +128,41 @@ const addFirm = async (req, res) => {
     })
 
 
-    // Save firm
+    // ------------------------------
+    // Save Firm
+    // ------------------------------
+
     const savedFirm = await firm.save()
 
+    console.log(
+      'FIRM SAVED:',
+      savedFirm._id
+    )
 
-    // Add firm to vendor
-    vendor.firm.push(savedFirm._id)
+
+    // ------------------------------
+    // Add Firm to Vendor
+    // ------------------------------
+
+    if (!Array.isArray(vendor.firm)) {
+      vendor.firm = []
+    }
+
+    vendor.firm.push(
+      savedFirm._id
+    )
 
     await vendor.save()
 
+
+    console.log(
+      'FIRM ADDED TO VENDOR'
+    )
+
+
+    // ------------------------------
+    // Response
+    // ------------------------------
 
     return res.status(201).json({
 
@@ -125,8 +177,21 @@ const addFirm = async (req, res) => {
   } catch (error) {
 
     console.error(
+      '=============================='
+    )
+
+    console.error(
       'ADD FIRM ERROR:',
       error
+    )
+
+    console.error(
+      'ERROR MESSAGE:',
+      error.message
+    )
+
+    console.error(
+      '=============================='
     )
 
 
@@ -143,9 +208,9 @@ const addFirm = async (req, res) => {
 }
 
 
-// ===============================
+// ======================================
 // DELETE FIRM
-// ===============================
+// ======================================
 
 const deleteFirmById = async (req, res) => {
 
@@ -179,7 +244,6 @@ const deleteFirmById = async (req, res) => {
       error
     )
 
-
     return res.status(500).json({
 
       error: 'Internal server error'
@@ -191,9 +255,9 @@ const deleteFirmById = async (req, res) => {
 }
 
 
-// ===============================
+// ======================================
 // EXPORT
-// ===============================
+// ======================================
 
 module.exports = {
 
