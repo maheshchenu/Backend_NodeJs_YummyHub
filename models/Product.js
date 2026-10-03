@@ -12,27 +12,29 @@ const productSchema = new mongoose.Schema({
         required: true
     },
 
-    category: [
-        {
-            type: String,
-            enum: ["veg", "non-veg"]
-        }
-    ],
+    category: {
+        type: String,
+        enum: ["veg", "non-veg"],
+        required: true
+    },
 
     image: {
         type: String
     },
 
     bestSeller: {
-        type: String
+        type: String,
+        required: true
     },
 
     description: {
-        type: String
+        type: String,
+        required: true
     },
 
     offer: {
-        type: String
+        type: String,
+        required: true
     },
 
     firm: [
