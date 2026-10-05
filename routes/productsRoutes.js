@@ -1,82 +1,27 @@
-const express = require("express")
-const path = require("path")
-
-const productController =
-    require("../controllers/productController")
-
-const verifyToken =
-    require("../middlewares/verifyToken")
-
+const express = require('express')
 const router = express.Router()
 
+const verifyToken = require('../middlewares/verifyToken')
+const productController = require('../controllers/productController')
 
-// ===============================
-// ADD PRODUCT
-// ===============================
-
+// Add Product
 router.post(
-
-    "/add-product/:firmId",
-
-    verifyToken,
-
-    productController.addProduct
-
+'/add-product/:firmId',
+verifyToken,
+...productController.addProduct
 )
 
-
-// ===============================
-// GET PRODUCTS
-// ===============================
-
+// Get Products by Firm
 router.get(
-
-    "/:firmId/products",
-
-    productController.getProductByFirm
-
+'/get-product/:firmId',
+productController.getProductByFirm
 )
 
-
-// ===============================
-// GET PRODUCT IMAGE
-// ===============================
-
-router.get(
-
-    "/uploads/:imageName",
-
-    (req, res) => {
-
-        const imageName =
-            req.params.imageName
-
-        const imagePath =
-            path.join(
-                __dirname,
-                "..",
-                "uploads",
-                imageName
-            )
-
-        res.sendFile(imagePath)
-
-    }
-
-)
-
-
-// ===============================
-// DELETE PRODUCT
-// ===============================
-
+// Delete Product
 router.delete(
-
-    "/:productId",
-
-    productController.deleteProductById
-
+'/delete-product/:productId',
+verifyToken,
+productController.deleteProductById
 )
-
 
 module.exports = router

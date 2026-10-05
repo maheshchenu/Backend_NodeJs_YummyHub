@@ -1,25 +1,21 @@
 const express = require('express')
-
-const firmController =
-  require('../controllers/firmController')
-
-const verifyToken =
-  require('../middlewares/verifyToken')
-
 const router = express.Router()
 
+const verifyToken = require('../middlewares/verifyToken')
+const firmController = require('../controllers/firmController')
 
+// Add Firm
 router.post(
-  '/add-firm',
-  verifyToken,
-  firmController.addFirm
+'/add-firm',
+verifyToken,
+...firmController.addFirm
 )
 
-
+// Delete Firm
 router.delete(
-  '/:firmId',
-  firmController.deleteFirmById
+'/delete-firm/:firmId',
+verifyToken,
+firmController.deleteFirmById
 )
-
 
 module.exports = router
